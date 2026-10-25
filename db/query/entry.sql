@@ -8,7 +8,7 @@ INSERT INTO entries (
 
 -- name: GetEntry :one
 SELECT * FROM entries
-WHERE account_id=$1
+WHERE id=$1
 LIMIT 1;
 
 -- name: ListEntries :many
