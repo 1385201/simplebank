@@ -23,7 +23,15 @@ func createRandomAccount(t *testing.T) Account {
 	//require：是测试的“保安”。检查合格就放行，检查出致命错误就中断测试
 
 	// 第3步：检查
-	require.NoError(t, err)      // 检查：有没有报错？有就失败
+	require.NoError(t, err) // 检查：有没有报错？有就失败
+	/*
+			// require.NoError 的伪代码
+		func NoError(t *testing.T, err error) {
+		    if err != nil { // 如果 err 不是空的（说明真的报错了）
+		        t.FailNow() // 拿起遥控器，按下“拉闸停电”按钮！
+		    }
+		}
+	*/
 	require.NotEmpty(t, account) // 检查：返回的东西是不是空的？
 
 	require.Equal(t, arg.Owner, account.Owner)       // 检查：名字对不对
@@ -80,7 +88,7 @@ func TestGetAccount(t *testing.T) {
 	//    用 WithinDuration 而不是 Equal,允许 1 秒误差
 	//    原因：数据库时间精度可能和 Go 的 time.Time 不完全一致,
 	//          直接 Equal 可能因微小差异"假失败"
-	require.WithinDuration(t, account1.CreatedAt, account2.CreatedAt, time.Second)
+	require.WithinDuration(t, account1.CreatedAt, account2.CreatedAt, time.Second) //(理论上是一样的，只是数据库的精度和go的精度有点不同，所以用time.second来运行一定的误差)
 }
 func TestUpdateAccount(t *testing.T) {
 	// ① 先随机创建一个账户,返回它的完整信息（含自动生成的 ID）

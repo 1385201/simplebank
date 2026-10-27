@@ -1,12 +1,14 @@
 version: "1"
 packages:
-  - name: "db"
-    path: "./db/sqlc"
-    queries: "./db/query/"
-    schema: "./db/migration/"
-    engine: "postgresql"
-    emit_json_tags: true
-    emit_prepared_queries: false
-    emit_interface: false
-    emit_exact_table_names: false
+  - name: "db"                 # 生成的代码所在的包名是 package db
+    path: "./db/sqlc"          # 生成的文件放在 db/sqlc 目录下
+    queries: "./db/query/"     # 去 db/query 里找手写的 SQL
+    schema: "./db/migration/"  # 去 db/migration 里找建表语句
+    engine: "postgresql"       # 告诉 sqlc 使用的是 Postgres 语法
+
+    # 👇 下面这 5 个 emit_xxx，直接决定了代码生成的风格：
     
+    emit_json_tags: true             # 生成 struct 时，自动加上 json:"xxx" 标签（为了以后方便做 Web API）
+    emit_prepared_queries: false     # 不生成预编译语句（预编译性能好但代码复杂，这里为了方便阅读关闭了）
+    emit_interface: false            # 不为 Queries 生成接口（默认生成的是 struct）
+    emit_exact_table_names: false    # 这个最精妙！如果为 true，accounts 表会生成 Accounts 结构体；为 false，它会自动把复数变成单数，生成 Account 结构体（更符合英语习惯和 Go 规范）
