@@ -30,6 +30,7 @@ func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
 		if rbErr := tx.Rollback(); rbErr != nil { //tx.Rollback()执行回滚操作，并将错误值返回给rbErr,如果rbERR！=nil说明回滚操作也失败了，此时只能错误打印出来
 			return fmt.Errorf("tx err:%v,rb err:%v", err, rbErr)
 		}
+		return err
 	}
 	return tx.Commit()
 }
@@ -82,28 +83,28 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 		}
 
 		//更新account1
-		account1, err := q.GetAccount(ctx, arg.FromAccountID)
+		account1, err := q.GetAccountForUpdate(ctx, arg.FromAccountID)
 		if err != nil {
-			return nil
+			return err
 		}
 		result.FromAccount, err = q.UpdateAccount(ctx, UpdateAccountParams{
 			ID:      arg.FromAccountID,
 			Balance: account1.Balance - arg.Amount,
 		})
 		if err != nil {
-			return nil
+			return err
 		}
 		//更新account2
-		account2, err := q.GetAccount(ctx, arg.ToAccountID)
+		account2, err := q.GetAccountForUpdate(ctx, arg.ToAccountID)
 		if err != nil {
-			return nil
+			return err
 		}
 		result.ToAccount, err = q.UpdateAccount(ctx, UpdateAccountParams{
 			ID:      arg.ToAccountID,
 			Balance: account2.Balance + arg.Amount,
 		})
 		if err != nil {
-			return nil
+			return err
 		}
 
 		return nil

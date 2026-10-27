@@ -53,7 +53,7 @@ func TestTransferTx(t *testing.T) {
 		require.NotZero(t, transfer.ID)
 		require.NotZero(t, transfer.CreatedAt)
 
-		_, err = store.GetAccount(context.Background(), transfer.ID) //确保transfer记录确实在数据库中
+		_, err = store.GetTransfer(context.Background(), transfer.ID) //确保transfer记录确实在数据库中
 		require.NoError(t, err)
 
 		//检查entry1:fromEntry
