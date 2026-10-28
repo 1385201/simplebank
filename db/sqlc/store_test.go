@@ -24,9 +24,9 @@ func TestTransferTx(t *testing.T) {
 	results := make(chan TransferTxResult) //接收TransferTxResult数据的通道，chan TransferTxResult也是类型
 
 	for i := 0; i < n; i++ { //模拟高并发场景，测试你的“转账事务”在同时发生 5 次时，会不会出 Bug
-		txName := fmt.Sprintf("tx %d", i+1)
+
 		go func() { //go 关键字表示开启一个 Goroutine（协程）,for 循环会瞬间执行 5 次,每一次都会丢出一个协程去后台执行。这 5 次转账是“同时”发生的，谁也不等谁。
-			ctx := context.WithValue(context.Background(), txKey, txName) //为每一个事务取一个名字
+			ctx := context.Background()
 			result, err := store.TransferTx(ctx, TransferTxParams{
 				FromAccountID: account1.ID,
 				ToAccountID:   account2.ID,
