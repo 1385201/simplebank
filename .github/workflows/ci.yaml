@@ -38,7 +38,9 @@ jobs:
 
     - name: Run migrations
       run: make migrateup
-     
+      env:
+      DB_SOURCE: postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable
+
 
     - name: Test
       run: make test
