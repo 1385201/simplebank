@@ -18,4 +18,6 @@ sqlc:# 根据 SQL 文件生成 Go 代码（db/sqlc 下的文件）
 
 test:# 运行所有测试，并显示覆盖率
 	go test -v -cover ./...
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test#Makefile的保护写法
+server:
+	go run main.go
+.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server#Makefile的保护写法
