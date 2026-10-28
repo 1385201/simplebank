@@ -12,19 +12,22 @@ func TestTransferTx(t *testing.T) {
 	store := NewStore(testDB)          //因为TransferTx是绑在*store上的方法，所以需要先搞个*Store类型的值出来，才能测试
 	account1 := createRandomAccount(t) //同一个包里可以调用未导出函数
 	account2 := createRandomAccount(t)
+
 	fmt.Println(">> before:", account1.Balance, account2.Balance)
 
 	//假设同时处理5个事务
 	n := 5
 	amount := int64(10)
 
-	//两个通道，连接同时执行的go程序，并允许他们在没有明确锁定的情况下安全的相互共享数据（不同的流水线工人的对讲机）
+	//两个通 道，连接同时执行的go程序，并允许他们在没有明确锁定的情况下安全的相互共享数据（不同的流水线工人的对讲机）
 	errs := make(chan error)               //接收错误的通道，chan error是类型
 	results := make(chan TransferTxResult) //接收TransferTxResult数据的通道，chan TransferTxResult也是类型
 
 	for i := 0; i < n; i++ { //模拟高并发场景，测试你的“转账事务”在同时发生 5 次时，会不会出 Bug
+		txName := fmt.Sprintf("tx %d", i+1)
 		go func() { //go 关键字表示开启一个 Goroutine（协程）,for 循环会瞬间执行 5 次,每一次都会丢出一个协程去后台执行。这 5 次转账是“同时”发生的，谁也不等谁。
-			result, err := store.TransferTx(context.Background(), TransferTxParams{
+			ctx := context.WithValue(context.Background(), txKey, txName) //为每一个事务取一个名字
+			result, err := store.TransferTx(ctx, TransferTxParams{
 				FromAccountID: account1.ID,
 				ToAccountID:   account2.ID,
 				Amount:        amount,
@@ -42,6 +45,7 @@ func TestTransferTx(t *testing.T) {
 		require.NoError(t, err)
 
 		result := <-results //从results通道里拿结果，如果没有就等待
+
 		require.NotEmpty(t, result)
 
 		//检查transfer
