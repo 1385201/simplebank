@@ -16,8 +16,11 @@ func NewServer(store *db.Store) *Server {
 	router := gin.Default()         //为路由表里的函数提前穿了两层洋葱
 
 	//配置路由表
-	router.POST("/accounts", server.createAccount)
-	router.GET("/accounts/:id", server.getAccount)
+	router.POST("/accounts", server.createAccount) // POST /accounts    //创建一个账户
+	router.GET("/accounts/:id", server.getAccount) // GET /accounts/1	//获取单个account
+	router.GET("/accounts", server.listAccount)    // GET /accounts		//获取多个accounts
+	router.POST("/accounts/update", server.updateAccount)
+	router.GET("/accounts/delete", server.deleteAccount)
 	server.router = router
 	return server
 }

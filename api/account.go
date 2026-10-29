@@ -20,7 +20,7 @@ func (server *Server) createAccount(ctx *gin.Context) { //ctx *gin.Context是从
 
 	// 1. 把 JSON 绑定到 req 上，并做校验
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, errorResponse(err)) //ctx.JSON是Gin框架返回json响应的方法
 		return
 	}
 
@@ -67,4 +67,76 @@ func (server *Server) getAccount(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, account)
 
+}
+
+type listAccountRequest struct {
+	PageID   int32 `form:"page_id" binding:"required,min=1"` //从查询参数里获取数据用form
+	PageSize int32 `form:"page_size" binding:"required,min=5,max=10"`
+}
+
+func (server *Server) listAccount(ctx *gin.Context) {
+	var req listAccountRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	arg := db.ListAccountsParams{
+		Limit:  req.PageSize,                    //一页的账户数目
+		Offset: (req.PageID - 1) * req.PageSize, //偏移量
+	}
+
+	accounts, err := server.store.ListAccounts(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+
+	}
+
+	ctx.JSON(http.StatusOK, accounts)
+
+}
+
+type updateAccountRequest struct {
+	ID      int64 `json:"id" binding:"required,min=1"`
+	Balance int64 `json:"balance" binding:"required"`
+}
+
+func (server *Server) updateAccount(ctx *gin.Context) {
+	var req updateAccountRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	arg := db.UpdateAccountParams{
+		ID:      req.ID,
+		Balance: req.Balance,
+	}
+
+	account, err := server.store.UpdateAccount(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+
+	}
+
+	ctx.JSON(http.StatusOK, account)
+
+}
+
+type deleteAccount struct {
+	ID int64 `form:"id" binding:"required,min=1"`
+}
+
+func (server *Server) deleteAccount(ctx *gin.Context) {
+	var req deleteAccount
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	}
+
+	err := server.store.DeleteAccount(ctx, req.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, "delete success!")
 }

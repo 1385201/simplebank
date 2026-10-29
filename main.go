@@ -20,14 +20,7 @@ func main() {
 	if err != nil {
 		log.Fatal("annnot connect to db :", err)
 	}
-	// ===== 临时调试代码 =====
-	var count int
-	err = conn.QueryRow("SELECT COUNT(*) FROM accounts").Scan(&count)
-	if err != nil {
-		log.Fatal("count query failed:", err)
-	}
-	log.Println(">>> accounts count =", count)
-	// ========================
+
 	store := db.NewStore(conn)
 
 	//创建服务器
