@@ -6,12 +6,12 @@ import (
 )
 
 type Server struct {
-	store  *db.Store   //我用什么处理业务
+	store  db.Store    //我用什么处理业务
 	router *gin.Engine //我怎么接收和分发请求
 }
 
 // NewServer创建一个新的HTTP服务器并设置路由。
-func NewServer(store *db.Store) *Server {
+func NewServer(store db.Store) *Server {
 	server := &Server{store: store} //只赋值了 store，router 此时是 nil
 	router := gin.Default()         //为路由表里的函数提前穿了两层洋葱
 

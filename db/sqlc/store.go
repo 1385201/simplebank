@@ -6,19 +6,25 @@ import (
 	"fmt"
 )
 
-type Store struct {
+type Store interface { //定义成接口类型，这样不管是真复合体（SQLStore）还是假复合体（MockStore），都能够适配
+	Querier
+	TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
+}
+
+// 这是真正连接 SQL 数据库的实现
+type SQLStore struct { //复合结构体（*Queries和管理数据库事务db *sql.DBd的复合体）
 	*Queries         //用来执行普通数据库操作
 	db       *sql.DB //用来开事务
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{
 		db:      db,
 		Queries: New(db),
 	}
 }
 
-func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error { //事务执行模板,(接收一个函数作为参数，函数 fn，就是你要执行的具体业务逻辑)
+func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) error { //事务执行模板,(接收一个函数作为参数，函数 fn，就是你要执行的具体业务逻辑)
 
 	tx, err := store.db.BeginTx(ctx, nil) //告诉数据库，我要开始一段事务，接下来的所有操作，都在这个通道里进行，nil表示默认隔离级别，ctx表示流水线工人的传话筒
 	if err != nil {
@@ -52,7 +58,7 @@ type TransferTxResult struct {
 }
 
 // 转账函数
-func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) { //两个结构体分别是转账函数的输入和输出
+func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) { //两个结构体分别是转账函数的输入和输出
 	var result TransferTxResult
 
 	err := store.execTx(ctx, func(q *Queries) error {

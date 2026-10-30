@@ -20,4 +20,6 @@ test:# 运行所有测试，并显示覆盖率
 	go test -v -cover ./...
 server:
 	go run main.go
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server#Makefile的保护写法
+mock:
+	mockgen -package mockdb -destination db/mock/store.go github.com/techschool/simplebank/db/sqlc Store
+.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server mock#Makefile的保护写法
