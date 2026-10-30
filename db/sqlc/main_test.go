@@ -7,24 +7,24 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
-)
-
-const (
-	dbDriver = "postgres"
-	dbSource = "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable"
+	"github.com/techschool/simplebank/util"
 )
 
 var testQueries *Queries
 var testDB *sql.DB
 
 func TestMain(m *testing.M) {
-	var err error
+
+	config, err := util.LoadConfig("../..")
+	if err != nil {
+		log.Fatal("cannot load config:", err)
+	}
 	// ① 打开数据库连接池,拿到"钥匙"
 	//    - dbDriver = "postgres"：告诉 sql 包用哪个驱动
 	//    - dbSource = "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable"
 	//    - sql.Open 只是创建连接池对象,并不真正连库（惰性连接）
 	//    - conn 是 *sql.DB,代表到 PostgreSQL 的连接池
-	testDB, err = sql.Open(dbDriver, dbSource) //连上数据库
+	testDB, err = sql.Open(config.DBDriver, config.DBSource) //连上数据库
 
 	// ② 如果创建连接池失败,打印错误并终止进程
 	//    log.Fatal 内部会调用 os.Exit(1),所以这里不用再写 os.Exit
