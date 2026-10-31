@@ -43,19 +43,19 @@ func (server *Server) createAccount(ctx *gin.Context) { //ctx *gin.Context是从
 }
 
 type getAccountRequest struct {
-	ID int64 `uri:"id" binding:"required,min=1"` //从URL 路径里拿数据，所以用uri:"id"
+	ID int64 `uri:"id" binding:"required,min=1"` //从URL 路径里拿数据，所以用uri:"id"，并限制id的最小值是1
 
 }
 
 func (server *Server) getAccount(ctx *gin.Context) {
 	var req getAccountRequest
-	if err := ctx.ShouldBindUri(&req); err != nil {
+	if err := ctx.ShouldBindUri(&req); err != nil { //如果ctx里的数据不满足getAccountRequest结构体的限制，则会报错
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	account, err := server.store.GetAccount(ctx, req.ID)
-	if err != nil { //要么查询失败，要么查询成功但是没数据
+	account, err := server.store.GetAccount(ctx, req.ID) //如果server.store是SQLStore，那就会去真数据库查询，如果是MockStore，那就会去假数据库查询（真假数据库都实现了Querier接口，都有GetAccount函数）
+	if err != nil {                                      //要么查询失败，要么查询成功但是没数据
 		if err == sql.ErrNoRows { //查询执行成功了，但结果集里一行数据都没有
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
@@ -64,7 +64,7 @@ func (server *Server) getAccount(ctx *gin.Context) {
 		return
 
 	}
-	//account := db.Account{}
+	//account = db.Account{}
 
 	ctx.JSON(http.StatusOK, account)
 

@@ -15,7 +15,7 @@ var testDB *sql.DB
 
 func TestMain(m *testing.M) {
 
-	config, err := util.LoadConfig("../..")
+	config, err := util.LoadConfig("../..") //当前目录的上一级目录的再上一级目录
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}

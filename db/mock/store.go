@@ -27,7 +27,7 @@ type MockStoreMockRecorder struct {
 	mock *MockStore
 }
 
-// 用*gomock.Controller制造一个假复合体（MockStore）
+// 用*gomock.Controller制造一个假复合体（数据库）（MockStore）
 func NewMockStore(ctrl *gomock.Controller) *MockStore {
 	mock := &MockStore{ctrl: ctrl}
 	mock.recorder = &MockStoreMockRecorder{mock}
@@ -103,15 +103,15 @@ func (mr *MockStoreMockRecorder) DeleteAccount(ctx, id any) *gomock.Call {
 }
 
 func (m *MockStore) GetAccount(ctx context.Context, id int64) (sqlc.Account, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccount", ctx, id)
-	ret0, _ := ret[0].(sqlc.Account)
-	ret1, _ := ret[1].(error)
+	m.ctrl.T.Helper()                            //如果剧本写错了（比如参数类型不对），报错时别指在这个自动生成的 mock 文件里，要指回你调用这个函数的那一行里
+	ret := m.ctrl.Call(m, "GetAccount", ctx, id) //找到导演。对导演发起呼叫，告诉导演我是假数据库本体，告诉导演，有人喊我做这个动作；告诉导演，来人带了这两个参数，并按照之前的期望进行执行代码
+	ret0, _ := ret[0].(sqlc.Account)             //类型断言,断言ret[0]是sqlc.Account结构体类型
+	ret1, _ := ret[1].(error)                    //类型断言,断言ret[1]是error类型
 	return ret0, ret1
 }
 
 func (mr *MockStoreMockRecorder) GetAccount(ctx, id any) *gomock.Call { //记下来，等会如果有人查账户，我们该怎么演
-	mr.mock.ctrl.T.Helper()
+	mr.mock.ctrl.T.Helper() //如果剧本写错了（比如参数类型不对），报错时别指在这个自动生成的 mock 文件里，要指回你调用这个函数的那一行里
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccount", reflect.TypeOf((*MockStore)(nil).GetAccount), ctx, id)
 }
 
