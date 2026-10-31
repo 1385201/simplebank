@@ -11,7 +11,7 @@ import (
 // 客户端发过来的 JSON 长什么样的定义
 type createAccountRequest struct { //从请求体里拿数据，所以设置格式为json
 	Owner    string `json:"owner" binding:"required"`
-	Currency string `json:"currency" binding:"required,oneof=USD EUR "`
+	Currency string `json:"currency" binding:"required,currency "`
 }
 
 // 接收 JSON → 校验 → 转成数据库参数 → 写库 → 返回结果。

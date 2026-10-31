@@ -2,6 +2,8 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	db "github.com/techschool/simplebank/db/sqlc"
 )
 
@@ -11,9 +13,14 @@ type Server struct {
 }
 
 // NewServer创建一个新的HTTP服务器并设置路由。
-func NewServer(store db.Store) *Server {
+func NewServer(store db.Store) *Server { //返回一个数据库服务器
 	server := &Server{store: store} //只赋值了 store，router 此时是 nil
 	router := gin.Default()         //为路由表里的函数提前穿了两层洋葱
+
+	//注册新的验证器
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("currency", validCurrency)
+	}
 
 	//配置路由表
 	router.POST("/accounts", server.createAccount) // POST /accounts    //创建一个账户
@@ -21,6 +28,8 @@ func NewServer(store db.Store) *Server {
 	router.GET("/accounts", server.listAccount)    // GET /accounts		//获取多个accounts
 	router.POST("/accounts/update", server.updateAccount)
 	router.GET("/accounts/delete", server.deleteAccount)
+
+	router.POST("/transfers", server.createTransfer)
 	server.router = router
 	return server
 }
