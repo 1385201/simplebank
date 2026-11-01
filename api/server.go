@@ -19,7 +19,7 @@ func NewServer(store db.Store) *Server { //返回一个数据库服务器
 
 	//注册新的验证器
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterValidation("currency", validCurrency)
+		v.RegisterValidation("currency", validCurrency) //你造了一个新安检员（validCurrency），你得带他去跟 Gin 框架的保安队长（binding.Validator.Engine()）报备一下
 	}
 
 	//配置路由表

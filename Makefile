@@ -9,9 +9,13 @@ dropdb:# 删除 postgres14 容器中的 simple_bank 数据库
 
 migrateup:# 执行数据库迁移，把 db/migration 下的 SQL 应用到数据库（建表等）
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up
+migrateup1:# 执行数据库迁移，更新当前版本的下一个版本（注意脏数据）
+	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up 1
 
 migratedown:# 回滚数据库迁移，撤销 migrateup 做的变更
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down
+migratedown1:# 回滚数据库迁移，回到当前版本的上一个版本（注意脏数据）
+	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down 1
 
 sqlc:# 根据 SQL 文件生成 Go 代码（db/sqlc 下的文件）
 	sqlc generate
@@ -22,4 +26,4 @@ server:
 	go run main.go
 mock:
 	mockgen -package mockdb -destination db/mock/store.go github.com/techschool/simplebank/db/sqlc Store
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server mock#Makefile的保护写法
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock#Makefile的保护写法
