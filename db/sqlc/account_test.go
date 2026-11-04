@@ -10,10 +10,11 @@ import (
 	"github.com/techschool/simplebank/util"
 )
 
-func createRandomAccount(t *testing.T) Account {
+func createRandomAccount(t *testing.T) Account { //是一个测试辅助函数
 	// 第1步：准备一个"随机账户"的数据
+	user := createRandomUser(t)
 	arg := CreateAccountParams{
-		Owner:    util.RandomOwner(),
+		Owner:    user.Username,
 		Balance:  util.RandomMoney(),
 		Currency: util.RandomCurrency(),
 	}

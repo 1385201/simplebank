@@ -5,13 +5,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 	db "github.com/techschool/simplebank/db/sqlc"
 )
 
 // 客户端发过来的 JSON 长什么样的定义
 type createAccountRequest struct { //从请求体里拿数据，所以设置格式为json
 	Owner    string `json:"owner" binding:"required"`
-	Currency string `json:"currency" binding:"required,currency "`
+	Currency string `json:"currency" binding:"required,currency"`
 }
 
 // 接收 JSON → 校验 → 转成数据库参数 → 写库 → 返回结果。
@@ -34,6 +35,13 @@ func (server *Server) createAccount(ctx *gin.Context) { //ctx *gin.Context是从
 	// 3. 调用数据库创建账户
 	account, err := server.store.CreateAccount(ctx, arg) //*gin.Context实现了context.Context接口，所以能传，context.Context接口的作用：Deadline()：获取截止时间  Done()：监听取消信号  Err()：获取取消原因  Value()：读取请求域数据
 	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok { //通过类型断言，把错误转换成*pq.Err，如果转换成功则返回ture，否则false，换言之：只有当这个错误确实是 PostgreSQL 返回的错误时，才会进入 if 里面
+			switch pqErr.Code.Name() {
+			case "foreign_key_violation", "unique_violation": //外键约束冲突,唯一约束冲突
+				ctx.JSON(http.StatusForbidden, errorResponse(err))
+				return
+			}
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

@@ -10,8 +10,8 @@ import (
 	"github.com/techschool/simplebank/util"
 )
 
-var testQueries *Queries
-var testDB *sql.DB
+var testQueries *Queries //它封装了所有生成的 SQL 查询方法
+var testDB *sql.DB       //数据库连接池
 
 func TestMain(m *testing.M) {
 

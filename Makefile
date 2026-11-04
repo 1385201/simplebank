@@ -24,6 +24,6 @@ test:# 运行所有测试，并显示覆盖率
 	go test -v -cover ./...
 server:
 	go run main.go
-mock:
+mock:#去 db/sqlc 包里找到名为 Store 的接口，自动生成一个实现了这个接口的 mock 结构体（通常叫 MockStore）。
 	mockgen -package mockdb -destination db/mock/store.go github.com/techschool/simplebank/db/sqlc Store
 .PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock#Makefile的保护写法
