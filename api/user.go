@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -33,11 +32,11 @@ func (server *Server) createUser(ctx *gin.Context) { //ctx *gin.Context是从 *h
 
 	// 1. 把 JSON 绑定到 req 上，并做校验
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		log.Println("bind error:", err)                     // 加上这行
+
 		ctx.JSON(http.StatusBadRequest, errorResponse(err)) //ctx.JSON是Gin框架返回json响应的方法
 		return
 	}
-	log.Printf("bind success: %+v\n", req) // 加上这行s
+
 	hashPassword, err := util.HashPassword(req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))

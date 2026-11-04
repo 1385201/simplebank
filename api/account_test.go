@@ -88,7 +88,7 @@ func TestGetAccountAPI(t *testing.T) {
 
 	for i := range testCases {
 		tc := testCases[i]
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) { //在当前这个测试函数里，再单独跑一个小测试，并且给它起个名字
 			// 2. 初始化 Mock 控制器
 			// gomock.NewController(t) 负责管理整个测试过程中所有 Mock 的预期行为
 			ctrl := gomock.NewController(t)
