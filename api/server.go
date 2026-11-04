@@ -23,6 +23,7 @@ func NewServer(store db.Store) *Server { //返回一个数据库服务器
 	}
 
 	//配置路由表
+	router.POST("/users", server.createUser)       //创建一个用户
 	router.POST("/accounts", server.createAccount) // POST /accounts    //创建一个账户
 	router.GET("/accounts/:id", server.getAccount) // GET /accounts/1	//获取单个account
 	router.GET("/accounts", server.listAccount)    // GET /accounts		//获取多个accounts
