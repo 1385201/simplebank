@@ -36,8 +36,7 @@ func (server *Server) createUser(ctx *gin.Context) { //ctx *gin.Context是从 *h
 		ctx.JSON(http.StatusBadRequest, errorResponse(err)) //ctx.JSON是Gin框架返回json响应的方法
 		return
 	}
-
-	hashPassword, err := util.HashPassword("xyz")
+	hashPassword, err := util.HashPassword(req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

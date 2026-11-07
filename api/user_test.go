@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -18,10 +20,40 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+// EqCreateUserParams 只是创建匹配器,用来装我的期待值
+type eqCreateParamsMatcher struct {
+	arg      db.CreateUserParams
+	password string
+}
+
+func (e eqCreateParamsMatcher) Matches(x any) bool { //x就是user, err := server.store.CreateUser(ctx, arg)传进来的arg，当 handler 真正调用 CreateUser 时，gomock 会调用这个 Matcher 的 Matches 方法，用 e 里存的期待值和实际传来的 x 做比较
+	// 1. 把实际传来的参数转成 CreateUserParams
+	arg, ok := x.(db.CreateUserParams)
+	if !ok {
+		return false
+	}
+	// 2. 用明文密码验证实际的哈希值对不对
+	err := util.CheckPassword(e.password, arg.HashedPassword) //哈希里带着盐，可以用明文密码去验证任意一次生成的哈希是否匹配
+	if err != nil {
+		return false
+	}
+	// 3. 密码对了，把期待参数里的哈希改成实际的那个
+	e.arg.HashedPassword = arg.HashedPassword //如果匹配就说明密码是正确的，所以将现在的哈希密码改成刚刚得到的哈希密码
+	return reflect.DeepEqual(e.arg, arg)      // 4. 比较所有字段（用户名、邮箱等）
+}
+
+// 当匹配失败时，gomock 会调用 String() 来显示你期待的是什么。
+func (e eqCreateParamsMatcher) String() string {
+	return fmt.Sprintf("matches arg %v and password %v", e.arg, e.password)
+}
+
+// 工厂函数，用来方便创建匹配器
+func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
+	return eqCreateParamsMatcher{arg, password} //这是我的期待值
+}
+
 func TestCreateUserAPI(t *testing.T) {
 	user, password := randomUser(t)
-	hashedPassword, err := util.HashPassword(password) //为了构造arg
-	require.NoError(t, err)
 
 	testCases := []struct {
 		name          string                                                  //测试名称
@@ -39,13 +71,14 @@ func TestCreateUserAPI(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) { //输入一个假的数据库对象，然后进行一些列期望操作(必须是数据库层面的错误)
 				arg := db.CreateUserParams{
-					Username:       user.Username,
-					HashedPassword: hashedPassword,
-					FullName:       user.FullName,
-					Email:          user.Email,
+					Username: user.Username,
+
+					FullName: user.FullName,
+					Email:    user.Email,
 				}
 				store.EXPECT().
-					CreateUser(gomock.Any(), gomock.Eq(arg)). //gomock.Eq(arg)如果arg是个固定的值，那就可以用这个办法来检查“调用时传的参数是不是我期待的那个”
+					//CreateUser的第一第二参数都是匹配器类型
+					CreateUser(gomock.Any(), EqCreateUserParams(arg, password)). //gomock.Eq(arg)如果arg是个固定的值，那就可以用这个办法来检查“调用时传的参数是不是我期待的那个”
 					Times(1).
 					Return(user, nil)
 
