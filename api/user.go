@@ -37,7 +37,7 @@ func (server *Server) createUser(ctx *gin.Context) { //ctx *gin.Context是从 *h
 		return
 	}
 
-	hashPassword, err := util.HashPassword(req.Password)
+	hashPassword, err := util.HashPassword("xyz")
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -49,7 +49,7 @@ func (server *Server) createUser(ctx *gin.Context) { //ctx *gin.Context是从 *h
 		FullName:       req.FullName,
 		Email:          req.Email,
 	}
-
+	//arg = db.CreateUserParams{}
 	// 3. 调用数据库创建用户
 	user, err := server.store.CreateUser(ctx, arg) //*gin.Context实现了context.Context接口，所以能传，context.Context接口的作用：Deadline()：获取截止时间  Done()：监听取消信号  Err()：获取取消原因  Value()：读取请求域数据
 	//有可能是数据库内部的问题也有可能是违反了数据库设置的唯一约束或者外键约束

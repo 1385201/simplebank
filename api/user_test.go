@@ -20,6 +20,9 @@ import (
 
 func TestCreateUserAPI(t *testing.T) {
 	user, password := randomUser(t)
+	hashedPassword, err := util.HashPassword(password) //为了构造arg
+	require.NoError(t, err)
+
 	testCases := []struct {
 		name          string                                                  //测试名称
 		body          gin.H                                                   //放的是请求体数据
@@ -35,8 +38,14 @@ func TestCreateUserAPI(t *testing.T) {
 				"email":     user.Email,
 			},
 			buildStubs: func(store *mockdb.MockStore) { //输入一个假的数据库对象，然后进行一些列期望操作(必须是数据库层面的错误)
+				arg := db.CreateUserParams{
+					Username:       user.Username,
+					HashedPassword: hashedPassword,
+					FullName:       user.FullName,
+					Email:          user.Email,
+				}
 				store.EXPECT().
-					CreateUser(gomock.Any(), gomock.Any()).
+					CreateUser(gomock.Any(), gomock.Eq(arg)). //gomock.Eq(arg)如果arg是个固定的值，那就可以用这个办法来检查“调用时传的参数是不是我期待的那个”
 					Times(1).
 					Return(user, nil)
 
