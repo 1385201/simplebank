@@ -23,7 +23,10 @@ func main() {
 	store := db.NewStore(conn)
 
 	//创建服务器
-	server := api.NewServer(store)
+	server, err := api.NewServer(config, store)
+	if err != nil {
+		log.Fatal("cannot create server:", err)
+	}
 	//启动服务器
 	err = server.Start(config.ServerAddress)
 	if err != nil {

@@ -186,7 +186,7 @@ func TestCreateUserAPI(t *testing.T) {
 
 			tc.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body) //date现在是[]byte类型了

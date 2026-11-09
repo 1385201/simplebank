@@ -103,7 +103,7 @@ func TestGetAccountAPI(t *testing.T) {
 
 			// 4. 启动测试服务器并发起 HTTP 请求
 			// 把假数据库塞进服务器里！因为 NewServer 接收的是 Store 接口，所以它能完美接纳 MockStore
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			// httptest.NewRecorder() 相当于一个“录音机”，用来记录 API 返回的响应（状态码、响应体等）
 			recorder := httptest.NewRecorder()
 
