@@ -66,6 +66,8 @@ func TestExpiredJWTToken(t *testing.T) {
 	require.EqualError(t, err, ErrExpiredToken.Error()) //是err.Error()和 ErrExpiredToken.Error()在比
 	require.Nil(t, payload)
 }
+
+// 测试非法的JWTToken的情况
 func TestInvalidJWTTokenAlgNone(t *testing.T) {
 	// 1. 【制作陷阱】先造一个看起来完全合法的 Payload 数据
 	// 比如随便拿一个用户的名字，有效期设为 1 分钟

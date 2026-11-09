@@ -23,7 +23,7 @@ func NewJWTMaker(secretKey string) (Maker, error) {
 	return &JWTMaker{secretKey}, nil
 }
 
-// CreateToken 根据用户名和有效期，生成一个 JWT token 字符串
+// CreateToken 根据用户名和有效期，生成一个 JWT token 字符串（用 HS256 算法）
 func (maker *JWTMaker) CreateToken(username string, duration time.Duration) (string, error) {
 	// 1. 先创建一个 Payload（包含用户名、签发时间、过期时间等）
 	payload, err := NewPayload(username, duration)
