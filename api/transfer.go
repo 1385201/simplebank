@@ -2,11 +2,13 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/techschool/simplebank/db/sqlc"
+	"github.com/techschool/simplebank/token"
 )
 
 // 创建转账所需的参数
@@ -26,11 +28,20 @@ func (server *Server) createTransfer(ctx *gin.Context) { //ctx *gin.Context是�
 		ctx.JSON(http.StatusBadRequest, errorResponse(err)) //ctx.JSON是Gin框架返回json响应的方法
 		return
 	}
-
-	if !server.validAccount(ctx, req.FromAccountID, req.Currency) { //如果账户1的货币类型和req.Currency不一致，返回
+	fromAccount, valid := server.validAccount(ctx, req.FromAccountID, req.Currency)
+	if !valid { //如果账户1的货币类型和req.Currency不一致，返回
 		return //跳出 createTransfer 这个处理函数
 	}
-	if !server.validAccount(ctx, req.ToAccountID, req.Currency) { //如果账户2的货币类型和req.Currency不一致，返回
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload) //从 Context 里取出之前存进去的用户信息，并断言*token.Payload 类型
+	if fromAccount.Owner != authPayload.Username {
+		err := errors.New("from account doesn't belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	_, valid = server.validAccount(ctx, req.FromAccountID, req.Currency)
+	if !valid { //如果账户2的货币类型和req.Currency不一致，返回
 		return
 	}
 
@@ -53,23 +64,23 @@ func (server *Server) createTransfer(ctx *gin.Context) { //ctx *gin.Context是�
 }
 
 // 验证accountID账户的货币类型是否和req.Currency保持一致(只有账户1和账户2都和req.Currency保持一致才能进行交易)
-func (server *Server) validAccount(ctx *gin.Context, accountID int64, currency string) bool {
+func (server *Server) validAccount(ctx *gin.Context, accountID int64, currency string) (db.Account, bool) {
 	//先根据accountID拿到账户
 	account, err := server.store.GetAccount(ctx, accountID)
 	if err != nil { //要么查询失败，要么查询成功但是没数据
 		if err == sql.ErrNoRows { //查询执行成功了，但结果集里一行数据都没有
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return false
+			return account, false
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return false
+		return account, false
 
 	}
 	//拿到账户但是发现货币种类不一致
 	if account.Currency != currency {
 		err := fmt.Errorf("account {%d} currency mismatch: %s vs %s", account.ID, account.Currency, currency)
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return false
+		return account, false
 	}
-	return true
+	return account, true
 }

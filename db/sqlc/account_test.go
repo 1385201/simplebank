@@ -154,25 +154,23 @@ func TestDeleteAccount(t *testing.T) {
 }
 
 func TestListAccounts(t *testing.T) {
-	// ① 循环创建 10 个随机账户,为分页查询准备足够的数据
-	//    这里故意用 for 循环而不是手动写 10 次
-	//    返回值被忽略了,因为分页测试只关心"数据库里有多少条",
-	//    不需要拿到每个账户的细节去比对
+	var lastAccount Account
 	for i := 0; i < 10; i++ {
-		createRandomAccount(t)
+		lastAccount = createRandomAccount(t)
 	}
 
 	// ② 准备"分页参数"：
 	//    - Limit=5 ：每页取 5 条
 	//    - Offset=5：跳过前 5 条（相当于"取第 2 页"）
 	//    组合起来就是："跳过前 5 条,从第 6 条开始取 5 条"
-	arg := ListAccountsParams{
+	arg := ListAccountsParams{ //拿到最后一个账户
+		Owner:  lastAccount.Owner, //取最后一个账户的用户名
 		Limit:  5,
-		Offset: 5,
+		Offset: 0,
 	}
 
 	// ③ 真正执行分页查询,accounts 是查回来的账户列表（一个切片）
-	accounts, err := testQueries.ListAccounts(context.Background(), arg)
+	accounts, err := testQueries.ListAccounts(context.Background(), arg) //拿到最后一个账户
 
 	// ④ 断言：查询操作本身不能报错
 	require.NoError(t, err)
@@ -180,7 +178,7 @@ func TestListAccounts(t *testing.T) {
 	// ⑤ 断言：返回的列表长度必须正好是 5
 	//    这是分页测试的核心：要 5 条就必须给 5 条
 	//    多了或少了都说明 LIMIT/OFFSET 逻辑有 bug
-	require.Len(t, accounts, 5)
+	require.NotEmpty(t, accounts)
 
 	// ⑥ 遍历返回的每一条账户,逐条检查
 	for _, account := range accounts {
@@ -188,5 +186,6 @@ func TestListAccounts(t *testing.T) {
 		//    防止查询返回了"空结构体"（虽然理论上不会,
 		//    但加上这层检查更严谨）
 		require.NotEmpty(t, account)
+		require.Equal(t, lastAccount.Owner, account.Owner)
 	}
 }

@@ -47,14 +47,17 @@ func (server *Server) setupRouter() {
 	router := gin.Default()                       //为路由表里的函数提前穿了两层洋葱
 	router.POST("/users", server.createUser)      //创建一个用户
 	router.POST("/users/login", server.loginUser) //登录
+	//上面的部分不需要进行任何类型的授权，而下面的部分需要
 
-	router.POST("/accounts", server.createAccount) // POST /accounts    //创建一个账户
-	router.GET("/accounts/:id", server.getAccount) // GET /accounts/1	//获取单个account
-	router.GET("/accounts", server.listAccount)    // GET /accounts		//获取多个accounts
-	router.POST("/accounts/update", server.updateAccount)
-	router.GET("/accounts/delete", server.deleteAccount)
+	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker)) //该路由组下的路由都会自动通过认证中间件authMiddleware的检查
 
-	router.POST("/transfers", server.createTransfer)
+	authRoutes.POST("/accounts", server.createAccount) // POST /accounts    //创建一个账户
+	authRoutes.GET("/accounts/:id", server.getAccount) // GET /accounts/1	//获取单个account
+	authRoutes.GET("/accounts", server.listAccount)    // GET /accounts		//获取多个accounts
+	authRoutes.POST("/accounts/update", server.updateAccount)
+	authRoutes.GET("/accounts/delete", server.deleteAccount)
+
+	authRoutes.POST("/transfers", server.createTransfer) //保存的是全部路包括由用 router 直接注册的（公开接口：创建用户、登录）以及用 authRoutes 注册的（需要认证的接口：账户、转账等）
 	server.router = router
 
 }

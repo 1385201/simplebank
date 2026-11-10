@@ -2,16 +2,18 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	db "github.com/techschool/simplebank/db/sqlc"
+	"github.com/techschool/simplebank/token"
 )
 
 // 客户端发过来的 JSON 长什么样的定义
 type createAccountRequest struct { //从请求体里拿数据，所以设置格式为json
-	Owner    string `json:"owner" binding:"required"`
+	//Owner    string `json:"owner" binding:"required"`
 	Currency string `json:"currency" binding:"required,currency"`
 }
 
@@ -26,8 +28,9 @@ func (server *Server) createAccount(ctx *gin.Context) { //ctx *gin.Context是从
 	}
 
 	// 2. 组装数据库参数
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload) //从 Context 里取出之前存进去的用户信息，并断言*token.Payload 类型
 	arg := db.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    authPayload.Username,
 		Currency: req.Currency,
 		Balance:  0, // 新账户余额固定为 0
 	}
@@ -73,7 +76,12 @@ func (server *Server) getAccount(ctx *gin.Context) {
 
 	}
 	//account = db.Account{}
-
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload) //从 Context 里取出之前存进去的用户信息，并断言*token.Payload 类型
+	if account.Owner != authPayload.Username {                           //检查查询出的账户的用户名和自己的用户名是否一致
+		err := errors.New("account doesn't belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
 	ctx.JSON(http.StatusOK, account)
 
 }
@@ -89,7 +97,9 @@ func (server *Server) listAccount(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload) //从 Context 里取出之前存进去的用户信息，并断言*token.Payload 类型
 	arg := db.ListAccountsParams{
+		Owner:  authPayload.Username,
 		Limit:  req.PageSize,                    //一页的账户数目
 		Offset: (req.PageID - 1) * req.PageSize, //偏移量
 	}

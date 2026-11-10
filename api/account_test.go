@@ -9,28 +9,37 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	mockdb "github.com/techschool/simplebank/db/mock" // 引入刚才用 mockgen 生成的假数据库包
 	db "github.com/techschool/simplebank/db/sqlc"     // 引入真实的数据库模型（Account 结构体等）
-	"github.com/techschool/simplebank/util"           // 引入工具包（生成随机数据）
-	"go.uber.org/mock/gomock"                         // 引入 gomock 测试框架
+	"github.com/techschool/simplebank/token"
+	"github.com/techschool/simplebank/util" // 引入工具包（生成随机数据）
+	"go.uber.org/mock/gomock"               // 引入 gomock 测试框架
 )
 
 // TestGetAccountAPI 测试 GET /accounts/:id 这个 API（数据库层面的单元测试已经完成，没有问题，这里的单元测试主要是为了检测我们的api业务逻辑是否有问题）
 func TestGetAccountAPI(t *testing.T) {
 	// 1. 准备测试数据：生成一个随机的、假的账户对象
-	account := randomAccount()
+	user, _ := randomUser(t)
+	account := randomAccount(user.Username)
 
 	testCases := []struct { //匿名结构体的切片定义,用来存放所有的TestGetAccountAPI 测试情况
-		name          string
-		accountID     int64
-		buildStubs    func(store *mockdb.MockStore)                           //构建桩（Stub）,构建预期的行为
+		name      string
+		accountID int64
+		setupAuth func(t *testing.T, request *http.Request, tokenMaker token.Maker) //处理认证头
+
+		buildStubs func(store *mockdb.MockStore) //构建桩（Stub）,构建预期的行为
+
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder) //检查响应
 	}{ //复合字面量的初始化，说白了就是给定义的结构体赋值
 		{ //这是第一个复合字面量：成功返回
 			name:      "OK",
 			accountID: account.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) { //期待调用 GetAccount方法
 				store.EXPECT().
 					GetAccount(gomock.Any(), gomock.Eq(account.ID)). // 参数1：任意 Context；参数2：必须等于我们生成的 account.ID
@@ -46,6 +55,9 @@ func TestGetAccountAPI(t *testing.T) {
 		{ //这是第二个复合字面量：查询成功但是没数据
 			name:      "NotFound",
 			accountID: account.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) { //按照剧本，调用*MockStore的GetAccount路由函数时候，应该按照下面写的做
 				store.EXPECT().
 					GetAccount(gomock.Any(), gomock.Eq(account.ID)).
@@ -60,6 +72,9 @@ func TestGetAccountAPI(t *testing.T) {
 		{ //这是第三个复合字面量：查询失败
 			name:      "InternalError",
 			accountID: account.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) { //按照剧本，调用*MockStore的GetAccount路由函数时候，应该按照下面写的做
 				store.EXPECT().
 					GetAccount(gomock.Any(), gomock.Eq(account.ID)).
@@ -74,6 +89,9 @@ func TestGetAccountAPI(t *testing.T) {
 		{ //这是第四个复合字面量：非法ID
 			name:      "InvalidID",
 			accountID: 0,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetAccount(gomock.Any(), gomock.Any()). //既然不会调用，那第二个参数无所谓是什么，所以改成gomock.Any()
@@ -81,6 +99,38 @@ func TestGetAccountAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{ //这是第五个复合字面量：未授权的用户
+			name:      "UnauthorizedUser",
+			accountID: account.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, "unauthorized_user", time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) { //期待调用 GetAccount方法
+				store.EXPECT().
+					GetAccount(gomock.Any(), gomock.Eq(account.ID)). // 参数1：任意 Context；参数2：必须等于我们生成的 account.ID
+					Times(1).                                        // 约束次数，在整个测试过程中，必须被调用，且只能被调用 1 次（导演ctrl在盯着）
+					Return(account, nil)                             // 约束结果，当被调用时，直接返回我们刚才造的 account 对象，且没有错误(nil)，
+
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{ //这是第六个复合字面量：未授权的用户
+			name:      "NoAuthorization",
+			accountID: account.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			},
+			buildStubs: func(store *mockdb.MockStore) { //期待调用 GetAccount方法
+				store.EXPECT().
+					GetAccount(gomock.Any(), gomock.Any()). // 参数1：任意 Context；参数2：任意 Context
+					Times(0)                                // 约束次数，在整个测试过程中，必须被调用，且只能被调用 1 次（导演ctrl在盯着）
+
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		},
 		//TODO ADD MORE CASES
@@ -113,6 +163,7 @@ func TestGetAccountAPI(t *testing.T) {
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err) // 要求发送请求时不能报错
 
+			tc.setupAuth(t, request, server.tokenMaker)
 			// 真正让 Gin 路由器函数ServeHTTP（根据路由，此处匹配到的路由是getAccount）处理这个请求，并把响应记录在 recorder 里（不需要真的启动一个网络端口）
 			server.router.ServeHTTP(recorder, request) //并把响应记录在 recorder 里
 			// 5. 验证结果
@@ -122,10 +173,10 @@ func TestGetAccountAPI(t *testing.T) {
 }
 
 // randomAccount 随机生成一个账户对象，专门供测试使用
-func randomAccount() db.Account {
+func randomAccount(owner string) db.Account {
 	return db.Account{
 		ID:       util.RandomInt(1, 1000), // 随机 ID：1 到 1000 之间
-		Owner:    util.RandomOwner(),      // 随机拥有者名字
+		Owner:    owner,                   // 拥有者名字
 		Balance:  util.RandomMoney(),      // 随机余额
 		Currency: util.RandomCurrency(),   // 随机货币单位 (USD/EUR)
 	}
@@ -147,3 +198,7 @@ func requireBodyMatchAccount(t *testing.T, body *bytes.Buffer, account db.Accoun
 	// 终极比对：期望的 account 结构体，和实际拿到的 gotAccount 结构体，必须完全相等！
 	require.Equal(t, account, gotAccount)
 }
+
+//TODO func TestListAccountsAPI(t *testing.T){}
+
+//TODO func TestCreateAccountAPI(t *testing.T){}
