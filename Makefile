@@ -1,5 +1,5 @@
 postgres:# 创建一个名为 postgres14 的 PostgreSQL 容器，端口 5432，用户 root，密码 secret
-	docker run --name postgres14 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:14-alpine
+	docker run --name postgres14 --network bank-network -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:14-alpine
 
 createdb:# 在 postgres14 容器中创建名为 simple_bank 的数据库
 	docker exec -it postgres14 createdb --username=root --owner=root simple_bank
